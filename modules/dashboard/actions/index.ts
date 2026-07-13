@@ -24,21 +24,20 @@ export const toggleStarMarked = async (
         },
       });
     } else {
-        await db.starMark.delete({
+      await db.starMark.delete({
         where: {
           userId_playgroundId: {
             userId,
             playgroundId: playgroundId,
-
           },
         },
       });
     }
 
-     revalidatePath("/dashboard");
+    revalidatePath("/dashboard");
     return { success: true, isMarked: isChecked };
   } catch (error) {
-       console.error("Error updating problem:", error);
+    console.error("Error updating problem:", error);
     return { success: false, error: "Failed to update problem" };
   }
 };
@@ -46,21 +45,25 @@ export const toggleStarMarked = async (
 export const getAllPlaygroundForUser = async () => {
   const user = await currentUser();
 
+  if (!user?.id) {
+    throw new Error("Unauthorized");
+  }
+
   try {
     const playground = await db.playground.findMany({
       where: {
-        userId: user?.id,
+        userId: user.id,
       },
       include: {
         user: true,
-        Starmark:{
-            where:{
-                userId:user?.id!
-            },
-            select:{
-                isMarked:true
-            }
-        }
+        Starmark: {
+          where: {
+            userId: user.id,
+          },
+          select: {
+            isMarked: true,
+          },
+        },
       },
     });
 
@@ -77,6 +80,10 @@ export const createPlayground = async (data: {
 }) => {
   const user = await currentUser();
 
+  if (!user?.id) {
+    throw new Error("Unauthorized");
+  }
+
   const { template, title, description } = data;
 
   try {
@@ -85,7 +92,7 @@ export const createPlayground = async (data: {
         title: title,
         description: description,
         template: template,
-        userId: user?.id!,
+        userId: user.id,
       },
     });
 
@@ -96,7 +103,26 @@ export const createPlayground = async (data: {
 };
 
 export const deleteProjectById = async (id: string) => {
+  const user = await currentUser();
+
+  if (!user?.id) {
+    throw new Error("Unauthorized");
+  }
+
   try {
+    const playground = await db.playground.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!playground) {
+      throw new Error("Project not found");
+    }
+
+    if (playground.userId !== user.id) {
+      throw new Error("Forbidden");
+    }
+
     await db.playground.delete({
       where: {
         id,
@@ -112,7 +138,26 @@ export const editProjectById = async (
   id: string,
   data: { title: string; description: string }
 ) => {
+  const user = await currentUser();
+
+  if (!user?.id) {
+    throw new Error("Unauthorized");
+  }
+
   try {
+    const playground = await db.playground.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!playground) {
+      throw new Error("Project not found");
+    }
+
+    if (playground.userId !== user.id) {
+      throw new Error("Forbidden");
+    }
+
     await db.playground.update({
       where: {
         id,
@@ -126,12 +171,22 @@ export const editProjectById = async (
 };
 
 export const duplicateProjectById = async (id: string) => {
+  const user = await currentUser();
+
+  if (!user?.id) {
+    throw new Error("Unauthorized");
+  }
+
   try {
     const originalPlayground = await db.playground.findUnique({
       where: { id },
     });
     if (!originalPlayground) {
       throw new Error("Original playground not found");
+    }
+
+    if (originalPlayground.userId !== user.id) {
+      throw new Error("Forbidden");
     }
 
     await db.playground.create({
@@ -149,4 +204,3 @@ export const duplicateProjectById = async (id: string) => {
     console.error("Error duplicating project:", error);
   }
 };
-
