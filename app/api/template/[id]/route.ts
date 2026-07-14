@@ -37,12 +37,17 @@ const playground = await db.playground.findUnique({
     return Response.json({ error: "Playground not found" }, { status: 404 });
   }
   
-  const templateKey = playground.template as keyof typeof templatePaths;
-  const templatePath = templatePaths[templateKey]
+const templateKey = playground.template as keyof typeof templatePaths;
+console.log("RAW template value:", JSON.stringify(playground.template));
+console.log("templateKey:", templateKey);
+console.log("Available keys:", Object.keys(templatePaths));
+const templatePath = templatePaths[templateKey]
+console.log("Resolved templatePath:", templatePath);
 
-    if (!templatePath) {
+if (!templatePath) {
+    console.log("HIT 404 — Invalid template branch");
     return Response.json({ error: "Invalid template" }, { status: 404 });
-  }
+}
 
   try {
     const inputPath = path.join(process.cwd() , templatePath);

@@ -42,8 +42,8 @@ export const useAISuggestions = (): UseAISuggestionsReturn => {
                 return currentState
             }
 
-            const model = editor.getModel();
-            const cursorPosition = editor.getPosition()
+            const model = editor.getModel();//monaco related
+            const cursorPosition = editor.getPosition()// monaco realted
 
             if (!model || !cursorPosition) {
                 return currentState
@@ -98,8 +98,8 @@ export const useAISuggestions = (): UseAISuggestionsReturn => {
     }, [])
 
 
-    const acceptSuggestion = useCallback(() => {
-        (editor: any, monaco: any) => {
+    const acceptSuggestion = useCallback((editor: any, monaco: any) => {
+         
             setState((currentState) => {
                 if (!currentState.suggestion || !currentState.position || !editor || !monaco) {
                     return currentState;
@@ -108,7 +108,7 @@ export const useAISuggestions = (): UseAISuggestionsReturn => {
                 const { line, column } = currentState.position;
                 const sanitizedSuggestion = currentState.suggestion.replace(/^\d+:\s*/gm, "");
 
-                editor.executeEdits("", [
+                editor.executeEdits("", [ //monaco
                     {
                         range: new monaco.Range(line, column, line, column),
                         text: sanitizedSuggestion,
@@ -128,7 +128,7 @@ export const useAISuggestions = (): UseAISuggestionsReturn => {
                 }
             })
         }
-    }, [])
+    , [])
 
     const rejectSuggestion = useCallback((editor:any)=>{
             setState((currentState)=>{

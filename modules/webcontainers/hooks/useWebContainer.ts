@@ -15,20 +15,31 @@ interface UseWebContaierReturn {
   destory: () => void;
 }
 
+// SINGLETON WEBCONTAINER
+let webcontainerPromise: Promise<WebContainer> | null = null;
+
+async function getWebContainer() {
+  if (!webcontainerPromise) {
+    webcontainerPromise = WebContainer.boot();
+  }
+
+  return webcontainerPromise;
+}
+
 export const useWebContainer = ({
   templateData,
 }: UseWebContainerProps): UseWebContaierReturn => {
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [instance, setInstance] = useState<WebContainer | null>(null);//code that is going to run
+  const [instance, setInstance] = useState<WebContainer | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function initializeWebContainer() {
       try {
-        const webcontainerInstance = await WebContainer.boot();
+        const webcontainerInstance = await getWebContainer();
 
         if (!mounted) return;
 
@@ -36,12 +47,14 @@ export const useWebContainer = ({
         setIsLoading(false);
       } catch (error) {
         console.error("Failed to initialize WebContainer:", error);
+
         if (mounted) {
           setError(
             error instanceof Error
               ? error.message
               : "Failed to initialize WebContainer"
           );
+
           setIsLoading(false);
         }
       }
@@ -51,9 +64,6 @@ export const useWebContainer = ({
 
     return () => {
       mounted = false;
-      if (instance) {
-        instance.teardown();
-      }
     };
   }, []);
 
@@ -68,27 +78,42 @@ export const useWebContainer = ({
         const folderPath = pathParts.slice(0, -1).join("/");
 
         if (folderPath) {
-          await instance.fs.mkdir(folderPath, { recursive: true }); // Create folder structure recursively
+          await instance.fs.mkdir(folderPath, {
+            recursive: true,
+          });
         }
 
         await instance.fs.writeFile(path, content);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to write file";
+
         console.error(`Failed to write file at ${path}:`, err);
-        throw new Error(`Failed to write file at ${path}: ${errorMessage}`);
+
+        throw new Error(
+          `Failed to write file at ${path}: ${errorMessage}`
+        );
       }
     },
     [instance]
   );
 
-  const destory = useCallback(()=>{
-    if(instance){
-        instance.teardown()
-        setInstance(null);
-        setServerUrl(null)
+  const destory = useCallback(() => {
+    if (instance) {
+      instance.teardown();
+      webcontainerPromise = null;
+      setInstance(null);
+      setServerUrl(null);
+      setError(null);
     }
-  },[instance])
+  }, [instance]);
 
-  return {serverUrl , isLoading , error , instance , writeFileSync , destory}
+  return {
+    serverUrl,
+    isLoading,
+    error,
+    instance,
+    writeFileSync,
+    destory,
+  };
 };

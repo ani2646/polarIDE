@@ -7,7 +7,14 @@ import { Progress } from "@/components/ui/progress";
 
 import { WebContainer } from "@webcontainer/api";
 import { TemplateFolder } from "@/modules/playground/lib/path-to-json";
-import TerminalComponent from "./terminal";
+import dynamic from "next/dynamic";
+
+const Terminal = dynamic(
+  () => import("@/modules/webcontainers/components/terminal"),
+  {
+    ssr: false,
+  }
+);
 
 interface WebContainerPreviewProps {
   templateData: TemplateFolder;
@@ -186,13 +193,28 @@ const WebContainerPreview = ({
 
         // STEP-4 Start The Server
 
-        if (terminalRef.current?.writeToTerminal) {
-          terminalRef.current.writeToTerminal(
-            "🚀 Starting development server...\r\n"
-          );
-        }
+if (terminalRef.current?.writeToTerminal) {
+  terminalRef.current.writeToTerminal(
+    "🚀 Starting development server...\r\n"
+  );
+}
 
-        const startProcess = await instance.spawn("npm", ["run", "start"]);
+// Detect the correct script name from package.json
+  const packageJsonContent = await instance.fs.readFile("package.json", "utf-8");
+  const packageJson = JSON.parse(packageJsonContent);
+  const scriptName = packageJson.scripts?.start
+    ? "start"
+    : packageJson.scripts?.dev
+    ? "dev"
+    : "start"; // fallback, will still error clearly if neither exists
+
+  if (terminalRef.current?.writeToTerminal) {
+    terminalRef.current.writeToTerminal(
+      `Running: npm run ${scriptName}\r\n`
+    );
+  }
+
+  const startProcess = await instance.spawn("npm", ["run", scriptName]);
 
         instance.on("server-ready", (port: number, url: string) => {
           if (terminalRef.current?.writeToTerminal) {
@@ -333,7 +355,7 @@ const WebContainerPreview = ({
 
           {/* Terminal */}
           <div className="flex-1 p-4">
-            <TerminalComponent
+            <Terminal
               ref={terminalRef}
               webContainerInstance={instance}
               theme="dark"
@@ -352,7 +374,7 @@ const WebContainerPreview = ({
           </div>
 
           <div className="h-64 border-t">
-            <TerminalComponent
+            <Terminal
               ref={terminalRef}
               webContainerInstance={instance}
               theme="dark"
