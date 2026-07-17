@@ -250,8 +250,8 @@ This project is licensed under the MIT License.
 
 **Akshat**
 
-- GitHub: https://github.com/yourusername
-- LinkedIn: https://linkedin.com/in/yourprofile
+- GitHub: https://github.com/ani2646
+
 
 ---
 
